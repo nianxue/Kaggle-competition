@@ -1,0 +1,471 @@
+---
+output: html_document
+---
+caret Usage
+========================================================
+
+## data varilization and exploratory
+```{r}
+library(ISLR); library(ggplot2); library(caret);
+data(Wage)
+summary(Wage)
+
+#split data
+inTrain <- createDataPartition(y=Wage$wage,
+                              p=0.7, list=FALSE)
+training <- Wage[inTrain,]
+testing <- Wage[-inTrain,]
+dim(training); dim(testing)
+
+#generate new factor variable
+library(Hmisc)
+training$cutWage <- cut2(training$wage,g=3)
+table(training$cutWage)
+
+#basic histogram plot
+with(Wage, plot(age,wage,col=rgb(0,0,0,alpha=0.2)))
+hist(Wage$wage,prob=T,col=Wage$education,breaks=25)
+lines(density(Wage$wage))
+rug(Wage$wage)
+
+#pairs plot
+featurePlot(x=training[,c("age","education","jobclass")],
+            y = training$wage,
+            plot="pairs")
+
+#pairs plot for only x and y, no x vs x
+featurePlot(solTrainXtrans[, -notFingerprints],
+            solTrainY,
+            between = list(x = 1, y = 1),
+            type = c("g", "p", "smooth"),  #g: grid, p:point, smooth: smooth line
+            labels = rep("", 2))
+
+#ggplot scatter
+ggplot(Wage, aes(x = age, y = wage)) + 
+    geom_point(aes(col = jobclass),alpha = 0.3) + 
+    stat_smooth(method = "lm", colour = "blue")
+
+
+#ggplot box
+ggplot(training, aes(x = cutWage, y = wage)) + 
+    geom_boxplot(aes(fill = cutWage)) +
+    geom_jitter(col = "black")
+
+#ggplot histogram Density plots
+ggplot(Wage, aes(x = wage)) + 
+    geom_histogram(aes(fill = jobclass,y = ..density..),
+                   binwidth = 10,alpha=0.5, position="identity") + 
+    facet_grid(health~.) +
+    geom_density()
+
+#ggplot  bar
+ggplot(Wage, aes(x=education, y=wage)) +
+    geom_bar(aes(fill = education),stat = "identity") +
+    #geom_text(aes(label=a number), vjust=-0.4) +
+    ylab("number of education") +
+    theme(axis.title.x = element_blank(), 
+          axis.text.x = element_text(angle = 45, hjust = 1))
+
+#ggplot heatmap
+ggplot(DayHourCounts, aes(x = Hour, y = Var1)) + 
+    geom_tile(aes(fill = Freq)) + 
+    scale_fill_gradient(name="Total MV Thefts", low="white", high="red") + 
+    theme(axis.title.y = element_blank())
+
+pdf("MyPlot.pdf")
+
+dev.off()
+
+#Parallel Coordinates plot
+library(MASS)
+x <- iris
+x$Species <- as.numeric(iris$Species)
+
+parcoord(x,col=x$Species,var.label=TRUE)
+
+#calculate Pearson's correlation
+cor(iris$Sepal.Length,iris$Sepal.Width)
+
+#robust ones against extreme outliers than Pearson's correlation coefficient.
+cor(iris$Sepal.Length,iris$Sepal.Width,method="spearman")
+
+
+
+###visualize and diagnose the residuals against other variables
+modFit<- train(wage ~ age + jobclass + education,
+               method = "lm",data=training)
+finMod <- modFit$finalModel
+
+#residuals against fitted values
+plot(finMod,1,pch=19,cex=0.5,col="#00000010")
+qplot(finMod$fitted,finMod$residuals,colour=race,data=training)
+
+#residuals against index
+plot(finMod$residuals,pch=19)
+
+```
+
+## preprocessing data
+```{r}
+library(caret); library(kernlab); data(spam)
+inTrain <- createDataPartition(y=spam$type,
+                              p=0.75, list=FALSE)
+
+training <- spam[inTrain,]
+testing <- spam[-inTrain,]
+hist(training$capitalAve,main="",xlab="ave. capital run length")
+
+#select features
+library(CORElearn)
+#classification
+est <- attrEval(type~.,data=training,estimator = "ReliefFexpRank")
+#regression
+est1 <- attrEval(type ~ ., data=training, estimator ="ReliefFexpRank")
+sort(est)
+sort(est1)
+
+#cor for factors
+fisher.test(training$type,training$factors)
+chisq.test(training$type,training$factor)
+
+library(corrplot)
+### We used the full namespace to call this function because the pls
+### package (also used in this chapter) has a function with the same
+### name.
+
+corrplot::corrplot(cor(solTrainXtrans[, -notFingerprints]), 
+                   order = "hclust", 
+                   tl.cex = .8)
+
+#Grubb's test for outlier detection
+library(outliers)
+grubbs.test(iris$Petal.Width)
+
+#Standardizing
+preObj <- preProcess(training[,-58],method=c("center","scale"))
+trainCapAveS <- predict(preObj,training[,-58])$capitalAve
+mean(trainCapAveS)
+sd(trainCapAveS)
+
+testCapAveS <- predict(preObj,testing[,-58])$capitalAve
+mean(testCapAveS)
+sd(testCapAveS)
+
+#Box-Cox transforms
+preObj <- preProcess(training[,-58],method=c("BoxCox"))
+trainCapAveS <- predict(preObj,training[,-58])$capitalAve
+par(mfrow=c(1,2)); hist(trainCapAveS); qqnorm(trainCapAveS)
+
+
+#Imputing data
+set.seed(13343)
+
+# Make some values NA
+training$capAve <- training$capitalAve
+selectNA <- rbinom(dim(training)[1],size=1,prob=0.05)==1
+training$capAve[selectNA] <- NA
+
+# Impute and standardize
+preObj <- preProcess(training[,-58],method="knnImpute")
+capAve <- predict(preObj,training[,-58])$capAve
+
+# Standardize true values
+capAveTruth <- training$capitalAve
+capAveTruth <- (capAveTruth-mean(capAveTruth))/sd(capAveTruth)
+
+quantile(capAve - capAveTruth)
+quantile((capAve - capAveTruth)[selectNA])
+```
+
+## create new features 
+```{r}
+#load example data
+library(ISLR); library(caret); data(Wage);
+inTrain <- createDataPartition(y=Wage$wage,
+                              p=0.7, list=FALSE)
+training <- Wage[inTrain,]; testing <- Wage[-inTrain,]
+
+#####Google "feature extraction for [data type]"
+#convert factor variables to dummy variables
+dummies <- dummyVars(wage ~ jobclass,data=training)
+head(predict(dummies,newdata=training))
+
+
+#ceate Spline basis
+library(splines)
+bsBasis <- bs(training$age,df=3) 
+
+lm1 <- lm(wage ~ bsBasis,data=training)
+plot(training$age,training$wage,pch=19,cex=0.5)
+points(training$age,predict(lm1,newdata=training),col="red",pch=19,cex=0.5)
+
+#Splines on the test set
+predict(bsBasis,age=testing$age)
+```
+
+## PCA preprocessing
+Most useful for linear-type models
+Watch out for outliers!
+Transform first (with logs/Box Cox)
+Plot predictors to identify problems
+```{r}
+# loading data
+library(caret); library(kernlab); data(spam)
+inTrain <- createDataPartition(y=spam$type,
+                              p=0.75, list=FALSE)
+training <- spam[inTrain,]
+testing <- spam[-inTrain,]
+
+M <- abs(cor(training[,-58]))
+diag(M) <- 0
+which(M > 0.8,arr.ind=T)
+
+#PCA on SPAM data
+typeColor <- ((spam$type=="spam")*1 + 1)
+prComp <- prcomp(log10(spam[,-58]+1))
+plot(prComp$x[,1],prComp$x[,2],col=typeColor,xlab="PC1",ylab="PC2")
+
+#PCA with caret
+preProc <- preProcess(log10(spam[,-58]+1),method="pca",pcaComp=2)
+spamPC <- predict(preProc,log10(spam[,-58]+1))
+plot(spamPC[,1],spamPC[,2],col=typeColor)
+
+#Preprocessing with PCA on training and testing set
+preProc <- preProcess(log10(training[,-58]+1),method="pca",pcaComp=2)
+trainPC <- predict(preProc,log10(training[,-58]+1))
+modelFit <- train(training$type ~ .,method="glm",data=trainPC)
+
+testPC <- predict(preProc,log10(testing[,-58]+1))
+confusionMatrix(testing$type,predict(modelFit,testPC))
+
+#alternative way of pca with caret
+modelFit <- train(training$type ~ .,method="glm",preProcess="pca",data=training)
+confusionMatrix(testing$type,predict(modelFit,testing))
+
+library(MASS)
+x <- iris[-102,]
+species <- which(colnames(x)=="Species")
+x.dist <- dist(x[,-species])
+x.sammon <- sammon(x.dist,k=2)
+plot(x.sammon$points)
+qplot(x.sammon$points[,1],x.sammon$points[,2],col=x$Species)
+```
+
+## caret for rpart tree
+```{r}
+data(iris); library(ggplot2)
+library(caret)
+
+inTrain <- createDataPartition(y=iris$Species,
+                              p=0.7, list=FALSE)
+training <- iris[inTrain,]
+testing <- iris[-inTrain,]
+
+qplot(Petal.Width,Sepal.Width,colour=Species,data=training)
+
+#build a model using caret
+modFit <- train(Species ~ .,method="rpart",data=training)
+print(modFit$finalModel)
+
+#plot tree
+plot(modFit$finalModel, uniform=TRUE, 
+      main="Classification Tree")
+text(modFit$finalModel, use.n=TRUE, all=TRUE, cex=.8)
+
+library(rattle)
+fancyRpartPlot(modFit$finalModel)
+
+#predicting new values
+predict(modFit,newdata=testing)
+```
+
+# caret rfe
+```{r}
+set.seed(104)
+index <- createFolds(sampled.trainingImpute$Label, k = 2)
+varSeq <- seq(9, length(predictors), by = 3)
+
+rfeCtrl <- rfeControl(method = "cv",
+                      functions = caretFuncs, 
+                      number = 2,
+                      saveDetails = TRUE,
+                      index = index,
+                      rerank = TRUE,
+                      returnResamp = "final")
+
+rfeCtrl$functions$summary <- twoClassSummary
+
+nocvCtrl <- trainControl(method = "none",
+                         classProbs = TRUE,
+                         summaryFunction = twoClassSummary,
+                         allowParallel = F)
+
+set.seed(721)
+RFE <- rfe(sampled.trainingImpute[, predictors],
+           sampled.trainingImpute$Label,
+           sizes = varSeq,
+           rfeControl = rfeCtrl,
+           metric = "ROC",
+           ## Now arguments to train() are used.
+           method = "earth",
+           tuneGrid = expand.grid(degree = 1, 
+                                  nprune = 20),
+           trControl = nocvCtrl)
+```
+
+## caret for bagging
+```{r}
+library(ElemStatLearn); data(ozone,package="ElemStatLearn")
+ozone <- ozone[order(ozone$ozone),]
+head(ozone)
+
+#Bagging in caret http://www.inside-r.org/packages/cran/caret/docs/nbBag
+predictors = data.frame(ozone=ozone$ozone)
+temperature = ozone$temperature
+treebag <- bag(predictors, temperature, B = 10,
+                bagControl = bagControl(fit = ctreeBag$fit,
+                                        predict = ctreeBag$pred,
+                                        aggregate = ctreeBag$aggregate))
+
+plot(ozone$ozone,temperature,col='lightgrey',pch=19)
+points(ozone$ozone,predict(treebag$fits[[1]]$fit,predictors),pch=19,col="red")
+points(ozone$ozone,predict(treebag,predictors),pch=19,col="blue")
+```
+
+## caret for Random Forest
+```{r}
+data(iris); library(ggplot2)
+inTrain <- createDataPartition(y=iris$Species,
+                              p=0.7, list=FALSE)
+training <- iris[inTrain,]
+testing <- iris[-inTrain,]
+
+#Random forests
+library(caret)
+modFit <- train(Species~ .,data=training,method="rf",prox=TRUE)
+modFit
+
+#Calculate the variable importance using the varImp function in the caret package
+varImp(modFit)
+
+#Getting a single tree
+getTree(modFit$finalModel,k=2)
+
+#Class "centers"
+irisP <- classCenter(training[,c(3,4)], training$Species, modFit$finalModel$prox)
+irisP <- as.data.frame(irisP); irisP$Species <- rownames(irisP)
+
+p <- qplot(Petal.Width, Petal.Length, col=Species,data=training)
+p + geom_point(aes(x=Petal.Width,y=Petal.Length,col=Species),
+               size=5,shape=4,data=irisP)
+
+#Predicting new values
+pred <- predict(modFit,testing); testing$predRight <- pred==testing$Species
+table(pred,testing$Species)
+
+qplot(Petal.Width,Petal.Length,colour=predRight,
+      data=testing,main="newdata Predictions")
+```
+
+
+
+
+## simple model ensemble
+```{r}
+library(ISLR); data(Wage); library(ggplot2); library(caret);
+Wage <- subset(Wage,select=-c(logwage))
+
+# Create a building data set and validation set
+inBuild <- createDataPartition(y=Wage$wage,
+                              p=0.7, list=FALSE)
+validation <- Wage[-inBuild,]; buildData <- Wage[inBuild,]
+
+inTrain <- createDataPartition(y=buildData$wage,
+                              p=0.7, list=FALSE)
+training <- buildData[inTrain,]; testing <- buildData[-inTrain,]
+
+#Build two different models
+mod1 <- train(wage ~.,method="glm",data=training)
+mod2 <- train(wage ~.,method="rf",
+              data=training, 
+              trControl = trainControl(method="cv"),number=3)
+
+#Predict on the testing set
+pred1 <- predict(mod1,testing); pred2 <- predict(mod2,testing)
+qplot(pred1,pred2,colour=wage,data=testing)
+
+#Fit a model that combines predictors
+predDF <- data.frame(pred1,pred2,wage=testing$wage)
+combModFit <- train(wage ~.,method="gam",data=predDF)
+combPred <- predict(combModFit,predDF)
+
+sqrt(sum((pred1-testing$wage)^2))
+sqrt(sum((pred2-testing$wage)^2))
+sqrt(sum((combPred-testing$wage)^2))
+
+#Predict on validation data set
+pred1V <- predict(mod1,validation); pred2V <- predict(mod2,validation)
+predVDF <- data.frame(pred1=pred1V,pred2=pred2V)
+combPredV <- predict(combModFit,predVDF)
+
+#Evaluate on validation
+sqrt(sum((pred1V-validation$wage)^2))
+sqrt(sum((pred2V-validation$wage)^2))
+sqrt(sum((combPredV-validation$wage)^2))
+```
+
+
+```{r}
+dtrain <- xgb.DMatrix(data = train$data, 
+                      label = train$label, 
+                      weight = weight, 
+                      missing = -999.0)
+
+# xgb.DMatrix can also be saved using xgb.DMatrix.save
+xgb.DMatrix.save(dtrain, "dtrain.buffer")
+# to load it in, simply call xgb.DMatrix
+dtrain2 <- xgb.DMatrix("dtrain.buffer")
+
+dtest <- xgb.DMatrix(data = test$data, label=test$label, weight = weight)
+
+
+params <- list(booster = "gbtree", ## "gblinear"
+               max.depth = 2, 
+               eta = 1, 
+               objective = "binary:logistic",
+               subsample = 0.1, #subsample ratio of the training instance
+               colsample_bytree = 0.5,
+               eval.metric = c("logloss"),
+               silence = 1)
+
+watchlist <- list(train=dtrain, test=dtest)
+
+set.seed(432)
+xgboost(data = dtrain, 
+        params = params, 
+        nround = 2, 
+        verbose = 1)
+
+bst <- xgb.train(data=dtrain, 
+                 nround=2, 
+                 params = params,
+                 watchlist=watchlist
+                 #obj = logregobj, 
+                 #feval = evalerror)
+
+xgb.cv(data=dtrain, 
+       nround=2, 
+       params = params,
+       nfold = 5,
+       #obj = logregobj, 
+       #feval = evalerror)
+
+# save model to binary local file
+xgb.save(bst, "xgboost.model")
+# load binary model to R
+bst <- xgb.load("xgboost.model")
+
+
+label = getinfo(dtest, "label")
+pred <- predict(bst, dtest)
+```

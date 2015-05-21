@@ -5,6 +5,7 @@ library(dplyr)
 
 
 setwd("E:/KaggleProject/Otto")
+source('E:/KaggleProject/Otto/caretMultiLogloss.R')
 trainIni <- read.csv("E:/KaggleProject/Otto/train.csv/train.csv")
 testIni <- read.csv("E:/KaggleProject/Otto/test.csv/test.csv")
 
@@ -35,33 +36,82 @@ label <- as.numeric(label) - 1
 dtrain <- xgb.DMatrix(data = as.matrix(train), label = label)
 dtest <- xgb.DMatrix(data = as.matrix(test))
 
+###############################################in xgb models##################
+
+
+##################first xgb
 set.seed(8763)
-xgbTune <- xgb.cv(data = dtrain,
-                 max_depth = 6,         #6
-                 eta = 0.3, 
-                 nround = 2000, 
-                 min_child_weight = 10,  #7
-                 #gamma = 0.05,
-                 #max_delta_step = 1,
-                 objective = "multi:softprob",
-                 num_class = 9,
-                 eval_metric = "mlogloss",
-                 nfold = 5,
-                 stratified = TRUE,
-                 #prediction = TRUE,
-                 subsample = 0.8, #subsample ratio of the training instance 0.5
-                 colsample_bytree = 0.5,
-                 verbose = 1)
+xgbTune3 <- xgb.cv(data = dtrain,
+                   max_depth = 3,         #6
+                   eta = 0.15, 
+                   nround = 900, 
+                   min_child_weight = 1,  #7
+                   #                  gamma = 0.0001,
+                   #max_delta_step = 1,
+                   objective = "multi:softprob",
+                   num_class = 9,
+                   eval_metric = "mlogloss",
+                   nfold = 10,
+                   stratified = TRUE,
+                   prediction = TRUE,
+                   subsample = 0.8, #subsample ratio of the training instance 0.5
+                   colsample_bytree = 0.6,
+                   verbose = 1)
 
-
-##########Train xgb model
+xgb3Cv <- as.data.frame(xgbTune3$pred, )
+names(xgb3Cv) <- paste0("xgb3","class",1:9)
 
 set.seed(8763)
-xgb <- xgboost(data = dtrainTwoway,
+xgb3 <- xgboost(data = dtrain,
+               max_depth = 3,         #6
+               eta = 0.15, 
+               nround = 900, 
+               min_child_weight = 1,  #7
+               #gamma = 0.0001,
+               #max_delta_step = 1,
+               objective = "multi:softprob",
+               num_class = 9,
+               eval_metric = "mlogloss",
+               #prediction = TRUE,
+               subsample = 0.8, #subsample ratio of the training instance 0.5
+               colsample_bytree = 0.6,
+               verbose = 1)
+
+xgb3Pred = predict(xgb3,dtest)
+xgb3Pred = matrix(xgb3Pred,9,length(xgb3Pred)/9)
+xgb3Pred = as.data.frame(t(xgb3Pred))
+names(xgb3Pred) <- paste0("xgb3","class",1:9)
+xgb.save(xgb3, 'xgb3')
+
+##################second xgb
+set.seed(8763)
+xgbTune6 <- xgb.cv(data = dtrain,
+                   max_depth = 6,         #6
+                   eta = 0.3, 
+                   nround = 160, 
+                   min_child_weight = 3,  #7
+                   #                  gamma = 0.0001,
+                   #max_delta_step = 1,
+                   objective = "multi:softprob",
+                   num_class = 9,
+                   eval_metric = "mlogloss",
+                   nfold = 10,
+                   stratified = TRUE,
+                   prediction = TRUE,
+                   subsample = 0.8, #subsample ratio of the training instance 0.5
+                   colsample_bytree = 0.6,
+                   verbose = 1)
+
+xgb6Cv <- as.data.frame(xgbTune6$pred, )
+names(xgb6Cv) <- paste0("xgb6","class",1:9)
+
+
+set.seed(8763)
+xgb6 <- xgboost(data = dtrain,
               max_depth = 6,         #6
-              eta = 0.2, 
-              nround = 200, 
-              min_child_weight = 7,  #7
+              eta = 0.3, 
+              nround = 160, 
+              min_child_weight = 3,  #7
               objective = "multi:softprob",
               num_class = 9,
               eval_metric = "mlogloss",
@@ -70,12 +120,37 @@ xgb <- xgboost(data = dtrainTwoway,
               colsample_bytree = 0.5,
               verbose = 1)
 
+xgb6Pred = predict(xgb6,dtest)
+xgb6Pred = matrix(xgb6Pred,9,length(xgb6Pred)/9)
+xgb6Pred = as.data.frame(t(xgb6Pred))
+names(xgb6Pred) <- paste0("xgb6","class",1:9)
+xgb.save(xgb6, 'xgb6')
 
-xgbs <- vector(mode = "list", length = 3)
-xgbPred <- vector(mode = "list", length = 3)
+###########################third xgb
+set.seed(8763)
+xgbTune8 <- xgb.cv(data = dtrain,
+                    max_depth = 8,         #6
+                    eta = 0.03, 
+                    nround = 1600, 
+                    min_child_weight = 10,  #7
+                    #                  gamma = 0.0001,
+                    #max_delta_step = 1,
+                    objective = "multi:softprob",
+                    num_class = 9,
+                    eval_metric = "mlogloss",
+                    nfold = 10,
+                    stratified = TRUE,
+                    prediction = TRUE,
+                    subsample = 0.8, #subsample ratio of the training instance 0.5
+                    colsample_bytree = 0.6,
+                    verbose = 1)
+
+xgb8Cv <- as.data.frame(xgbTune8$pred, )
+names(xgb8Cv) <- paste0("xgb8","class",1:9)
 
 
-xgb <- xgboost(data = dtrain,
+set.seed(8763)
+xgb8 <- xgboost(data = dtrain,
                 max_depth = 8,         #6
                 eta = 0.03, 
                 nround = 1600, 
@@ -87,32 +162,10 @@ xgb <- xgboost(data = dtrain,
                 colsample_bytree = 0.5,
                 verbose = 1)
 
-pred = predict(xgb,dtest)
-
-# Get the feature real names
-names <- attr(train,"dimnames")[[2]]
-
-# Compute feature importance matrix
-varImp <- xgb.importance(names, model = xgb)
-top50 <- varImp$Feature[1:50]
+xgb8Pred = predict(xgb8,dtest)
+xgb8Pred = matrix(xgb8Pred,9,length(xgb8Pred)/9)
+xgb8Pred = as.data.frame(t(xgb8Pred))
+names(xgb8Pred) <- paste0("xgb8","class",1:9)
+xgb.save(xgb8, 'xgb8')
 
 
-
-
-# Nice graph
-xgb.plot.importance(importance_matrix[1:50,])
-
-
-xgb.plot.tree(feature_names = names, model = xgb, n_first_tree = 3)
-
-
-############################################ Make prediction
-pred = predict(xgb,dtest)
-pred = matrix(pred,9,length(pred)/9)
-pred = t(pred)
-
-# Output submission
-pred = format(pred, digits=2,scientific=F) # shrink the size of submission
-pred = data.frame(1:nrow(pred),pred)
-names(pred) = c('id', paste0('Class_',1:9))
-write.csv(pred,file='submission.csv', quote=FALSE,row.names=FALSE)

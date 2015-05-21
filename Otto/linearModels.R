@@ -5,7 +5,6 @@ library(dplyr)
 library(glmnet)
 library(nnet)
 library(doParallel)
-library(gbm)
 
 source('E:/KaggleProject/Otto/caretMultiLogloss.R')
 setwd("E:/KaggleProject/Otto")
@@ -74,7 +73,13 @@ glmnet.num <- train(x = train.num,
                    tuneGrid = expand.grid(alpha = 0.8875,
                                           lambda = 0.0001277322))
 
-predGlmnet.num <- predict(glmnet.num, test.num, type = "prob")
+glmnet.numCv <- arrange(glmnet.num$pred, rowIndex)
+glmnet.numCv <- glmnet.numCv %>% select(starts_with("class"))
+names(glmnet.numCv) <- paste0("glmnet.num","class",1:9)
+
+glmnet.numPred <- predict(glmnet.num, test.num, type = "prob")
+names(glmnet.numPred) <- paste0("glmnet.num","class",1:9)
+
 
 
 
@@ -90,17 +95,13 @@ glmnet.fac <- train(x = train.fac,
                     tuneGrid = expand.grid(alpha = 0.8875,
                                            lambda = c(0.0002)))
 
-predGlmnet.fac <- predict(glmnet.fac, test.fac, type = "prob")
+glmnet.facCv <- arrange(glmnet.fac$pred, rowIndex)
+glmnet.facCv <- glmnet.facCv %>% select(starts_with("class"))
+names(glmnet.facCv) <- paste0("glmnet.fac","class",1:9)
 
-
-
-submission[,2:10] <- glmnetPred
-write.csv(submission,file='submission.csv', quote=FALSE,row.names=FALSE)
-
+glmnet.facPred <- predict(glmnet.fac, test.fac, type = "prob")
+names(glmnet.facPred) <- paste0("glmnet.fac","class",1:9)
 
 
 stopCluster(cl)
 
-############################################ Make prediction
-
-write.csv(pred,file='submission.csv', quote=FALSE,row.names=FALSE)

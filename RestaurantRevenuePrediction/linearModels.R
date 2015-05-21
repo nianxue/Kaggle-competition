@@ -14,9 +14,7 @@ trainIni <- read.csv("E:/KaggleProject/RestaurantRevenuePrediction/train.csv/tra
 testIni <- read.csv("E:/KaggleProject/RestaurantRevenuePrediction/test.csv/test.csv")
 submission <- read.csv("E:/KaggleProject/RestaurantRevenuePrediction/sampleSubmission.csv")
 
-#remove outliers
-outliers <- trainIni$revenue > 1.0e+7
-trainIni <- trainIni[!outliers,]
+trainIni$revenue[trainIni$revenue > 1.0e+7] = 1.0e+7
 
 revenue <- trainIni$revenue
 trainIni$revenue <- NULL
@@ -64,7 +62,6 @@ data$P29 <- recode(data$P29, "0:1 = 1; c(2, 2.5) = 2; c(5, 7.5, 10) = 7.5")
 
 
 data$duration <- log(data$duration)
-logRevenue <- log(revenue)
 
 data$Open.Date <- NULL
 data$split <- NULL
@@ -87,68 +84,33 @@ trCtrl <- trainControl(method = "repeatedcv",
 
 ###############train a glmnet model regard pVars as numerical#################
 data.num <- model.matrix(~.- Id - 1, data = data)
+data.num <- as.data.frame(data.num)
+
+
 train <- data.num[split == 1, ]
-train <- as.data.frame(train)
+train$large <- trainPred
+
 test <- data.num[split != 1, ]
-test <- as.data.frame(test)
+test$large <- testPred
 
-
-
-####Cset glment parameters
-penalty.factor <- rep(1,length.out = ncol(train))
-penalty.factor[c(2,3,ncol(train))] = 0.1
 
 set.seed(4632)
 glmnet.num <- train(x = train,
-              y = logRevenue, 
-              method = "glmnet", 
-              metric = "RMSE", 
-              trControl = trCtrl,
-              family = "gaussian",
-              penalty.factor = penalty.factor,
-              tuneGrid = expand.grid(alpha = c(0.6), 
-                                     lambda = c(0.01)),
-              dfmax = 10)
-
-predGlmnet.num <- predict(glmnet.num, test)
-predGlmnet.num <- exp(predGlmnet.num)
-
-###############train a glmnet model regard pVars as factors#################
-data.fac <- data
-data.fac[,2:(ncol(data.fac)-1)] <- as_data_frame(lapply(data.fac[,2:(ncol(data.fac)-1)], as.factor))
-
-##remove high correlation vars
-data.fac <- model.matrix(~.- Id - 1, data = data.fac) 
-correlation <- cor(data.fac[split == 1,], method = "spearman")
-highCorVars <- findCorrelation(correlation, cutoff = 0.6)
-data.fac <- data.fac[,-highCorVars]
-
-
-train <- data.fac[split == 1, ]
-train <- as.data.frame(train)
-test <- data.fac[split != 1, ]
-test <- as.data.frame(test)
+                    y = revenue, 
+                    method = "glmnet", 
+                    metric = "RMSE", 
+                    trControl = trCtrl,
+                    family = "gaussian",
+#                     tuneLength = 12,
+#                     penalty.factor = penalty.factor,
+                    tuneGrid = expand.grid(alpha = c(0.2636364), 
+                                           lambda = c(3)),
+                    dfmax = 10)
 
 
 
-penalty.factor <- rep(1,length.out = ncol(train))
-penalty.factor[c(2,3,46,ncol(train))] = 0
+predGlmnet <- predict(glmnet.num, test)
 
-set.seed(743)
-glmnet.factor <- train(x = train,
-                       y = logRevenue, 
-                       method = "glmnet", 
-                       metric = "RMSE", 
-                       trControl = trCtrl,
-                       family = "gaussian",
-                       penalty.factor = penalty.factor,
-                       tuneGrid = expand.grid(alpha = c(0.5), 
-                                              lambda =  c(0.2)))
-
-
-
-predGlmnet.factor <- predict(glmnet.factor, test)
-predGlmnet.factor <- exp(predGlmnet.factor)
 
 stopCluster(cl)
 

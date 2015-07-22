@@ -1,5 +1,6 @@
 
-load("E:/KaggleProject/libertyMutualPropertyInspection/cleanData.RData")
+#load("E:/KaggleProject/libertyMutualPropertyInspection/cleanData.RData")
+load("C:/NIAN/Correlation/libertyMutualPropertyInspection/libertyMutualPropertyInspection/clearnData.RData")
 data <- model.matrix(~.-1, data = data)
 
 ################################get train and test
@@ -26,6 +27,7 @@ xgb <- train(train, Hazard,
              trControl = trCtrl,
              metric = "Gini", 
              maximize = TRUE,
+             objective = "reg:linear",
              tuneGrid = expand.grid(nrounds = c(2000,2200,2400,2600),
                                     max_depth = c(7,8,9,10),
                                     eta = c(0.001,0.0025,0.005)),
@@ -35,3 +37,19 @@ xgb <- train(train, Hazard,
              # early.stop.round = 100,
              stratified = TRUE,
              verbose = 1)
+
+
+set.seed(849)
+xgbLinear <- train(train, Hazard, 
+                   method = "xgbLinear", 
+                   trControl = trCtrl,
+                   metric = "Gini", 
+                   maximize = TRUE,
+                   objective = "reg:linear",
+                   tuneGrid = expand.grid(nrounds = c(22),
+                                          lambda = 0.1,
+                                          alpha = c(0.0015)),
+                   stratified = TRUE,
+                   verbose = 1)
+
+

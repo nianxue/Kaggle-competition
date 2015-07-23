@@ -5,11 +5,6 @@ setCompilerOptions(suppressUndefined = T)
 
 path.wd <- getwd()
 
-library(data.table)
-library(caret)
-library(doParallel)
-
-
 caretGini <- function (data, lev = NULL, model = NULL) 
 {
     if (is.character(data$obs)) 
@@ -65,4 +60,25 @@ WeightedGini <- function(solution, weights, submission){
 
 NormalizedWeightedGini <- function(solution, weights, submission) {
     WeightedGini(solution, weights, submission) / WeightedGini(solution, weights, solution)
+}
+
+
+caretMultiLogloss <- function(data, lev = NULL, model = NULL) 
+{
+  library(reshape2)
+  N <- nrow(data)
+  
+  data <- melt(data, id.vars = c("pred", "obs", "rowIndex"))  
+  data$y <- as.numeric(data$obs == data$variable)
+  
+  #caculate logLoss
+  epsilon <- 1e-15
+  yhat <- pmin(pmax(data$value, epsilon), 1-epsilon)
+  y <- data$y
+  
+  Logloss <- sum(y * log(yhat) )
+  Logloss <- -Logloss / N 
+  
+  names(Logloss) <- c("Logloss")
+  Logloss
 }

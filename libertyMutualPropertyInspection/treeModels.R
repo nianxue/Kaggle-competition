@@ -16,14 +16,14 @@ cl <- makeCluster(2)
 registerDoParallel(cl)
 clusterExport(cl, varlist=c("NormalizedWeightedGini", "WeightedGini"))
 
+stopCluster(cl)
 ############################################### xgb models##################
 trCtrlFac <- trainControl(method = "cv", 
                           number = 3, 
-                          returnResamp = "all",
                           returnData = F,
                           savePredictions = TRUE,
                           classProbs = TRUE,
-                          summaryFunction = caretGini)
+                          summaryFunction = caretMultiLogloss)
 
 
 trCtrl <- trainControl(method = "cv", 
@@ -34,13 +34,12 @@ trCtrl <- trainControl(method = "cv",
                        summaryFunction = caretGini)
 
 set.seed(849)
-xgbFactor <- train(train, Hazard, 
+xgbFactor <- train(train, HazardFactor, 
                    method = "xgbTree", 
-                   trControl = trCtrl,
-                   metric = "Gini", 
-                   maximize = TRUE,
+                   trControl = trCtrlFac,
+                   metric = "Logloss", 
                    objective = "multi:softprob",
-                   tuneGrid = expand.grid(nrounds = c(2300),
+                   tuneGrid = expand.grid(nrounds = c(500,1000),
                                           max_depth = c(7),
                                           eta = c(0.005)),
                    subsample = 0.75, 

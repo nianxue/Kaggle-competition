@@ -106,4 +106,4 @@ data$split <- NULL
 data$Open <- NULL
 data$Sales <- NULL
 data$StateHoliday <- NULL
-data$Customers <- NULL
+

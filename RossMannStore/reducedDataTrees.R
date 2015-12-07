@@ -26,12 +26,8 @@ train$Date <- NULL
 test$Date <- NULL
 
 
-
-
 #build linear models
 registerDoParallel(4)
-
-
 
 # set repeatedcv for measure model performace
 trCtrl <- trainControl(method = "LGOCV", 

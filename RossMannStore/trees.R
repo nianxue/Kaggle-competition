@@ -87,7 +87,7 @@ xgb <- train(train, trainY,
                                     eta = c(0.08), 
                                     gamma = 0, 
                                     colsample_bytree = c(0.75), #0.6
-                                    min_child_weight = c(15)),
+                                    min_child_weight = c(15,20)),
              subsample = 0.65, 
              # early.stop.round = 100,
              stratified = TRUE,

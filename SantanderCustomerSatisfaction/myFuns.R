@@ -178,19 +178,20 @@ pred = function(object, x)
   out
 },
 
+#xgbBagFit$finalModel$control$aggregate <- xgbBag$aggregate
 aggregate = function(x, type = "class")
 {
   library(psych)
   if(is.matrix(x[[1]]) | is.data.frame(x[[1]]))
   {
     pooled <- x[[1]] & NA
-    
+
     classes <- colnames(pooled)
     for(i in 1:ncol(pooled))
     {
       tmp <- lapply(x, function(y, col) y[,col], col = i)
       tmp <- do.call("rbind", tmp)
-      pooled[,i] <- apply(tmp, 2, mean)
+      pooled[,i] <- apply(tmp, 2, harmonic.mean)
     }
     if(type == "class")
     {
@@ -199,7 +200,7 @@ aggregate = function(x, type = "class")
     } else out <- as.data.frame(pooled)
   } else {
     x <- matrix(unlist(x), ncol = length(x))
-    out <- apply(x, 1, mean)
+    out <- apply(x, 1, harmonic.mean)
   }
   out
 })

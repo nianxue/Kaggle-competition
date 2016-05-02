@@ -92,13 +92,13 @@ xgbProb <- train(train, FactorResponse,
                  trControl = trCtrl,
                  metric = "ROC", 
                  maximize = T,
-                 tuneGrid = expand.grid(nrounds = 1600,
-                                        max_depth = c(5), #
+                 tuneGrid = expand.grid(nrounds = 1800,
+                                        max_depth = c(4), #
                                         eta = c(0.004), # bag
                                         gamma = c(0),
-                                        colsample_bytree = c(0.4), #0.55
-                                        min_child_weight = c(9)),#,7,9
-                 subsample = 0.6, #0.7
+                                        colsample_bytree = c(0.35), #0.55
+                                        min_child_weight = c(15)),#,7,9
+                 subsample = 0.5, #0.7
                  alpha = 0,
                  lambda = 1,
                  # colsample_bylevel = 0.55,
@@ -106,8 +106,7 @@ xgbProb <- train(train, FactorResponse,
                  verbose = 1)
 
 
-
-print(xgbProb,showSD = T)
+print(xgbProb1,showSD = T)
 xgbImp <- varImp(xgbProb)$importance
 
 xgb.dump(xgbProb$finalModel,fname = "xgb.dump", fmap='xgb.fmap', with.stats = TRUE)
@@ -128,17 +127,17 @@ xgbBagFit <- train(train, FactorResponse,
                    maximize = TRUE,
                    trControl = trCtrlBag,
                    tuneGrid = expand.grid(vars = c(100)),
-                   B = 35, 
+                   B = 51, 
                    bagControl = bagControl(fit = xgbBag$fit,
                                            predict = xgbBag$pred,
                                            aggregate = xgbBag$aggregate),
                    objective = "binary:logistic",
-                   nrounds = 1600, 
-                   max_depth = 5,
+                   nrounds = 1800, 
+                   max_depth = 4,
                    eta = 0.004,
-                   subsample = 0.6, 
-                   colsample_bytree = c(0.4),
-                   min_child_weight = 9,
+                   subsample = 0.5, 
+                   colsample_bytree = c(0.35),
+                   min_child_weight = 11,
                    stratified = TRUE,
                    bag.fraction = 1)
 
@@ -149,14 +148,10 @@ nv = tc['num_var33']+tc['saldo_medio_var33_ult3']+tc['saldo_medio_var44_hace2']+
 preds[nv > 0] = 0
 preds[tc['var15'] < 23] = 0
 preds[tc['saldo_medio_var5_hace2'] > 160000] = 0
-preds[tc['saldo_var33'] > 0] = 0
-preds[tc['var38'] > 3988596] = 0
-preds[tc['var21'] > 7500] = 0
+preds[tc['saldo_var33'] > 0] = 0 
 preds[tc['num_var30'] > 9] = 0
 preds[tc['num_var13_0'] > 6] = 0
 preds[tc['num_var33_0'] > 0] = 0
-preds[tc['imp_ent_var16_ult1'] > 51003] = 0
-preds[tc['imp_op_var39_comer_ult3'] > 13184] = 0
 preds[tc['saldo_medio_var5_ult3'] > 108251] = 0
 preds[(tc['var15']+tc['num_var45_hace3']+tc['num_var45_ult3']+tc['var36']) <= 24] = 0
 preds[tc['saldo_var5'] > 137615] = 0

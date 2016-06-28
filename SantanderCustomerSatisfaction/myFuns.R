@@ -191,7 +191,7 @@ aggregate = function(x, type = "class")
     {
       tmp <- lapply(x, function(y, col) y[,col], col = i)
       tmp <- do.call("rbind", tmp)
-      pooled[,i] <- apply(tmp, 2, harmonic.mean)
+      pooled[,i] <- apply(tmp, 2, median)
     }
     if(type == "class")
     {
@@ -200,7 +200,7 @@ aggregate = function(x, type = "class")
     } else out <- as.data.frame(pooled)
   } else {
     x <- matrix(unlist(x), ncol = length(x))
-    out <- apply(x, 1, harmonic.mean)
+    out <- apply(x, 1, median)
   }
   out
 })

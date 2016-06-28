@@ -92,8 +92,8 @@ xgbProb <- train(train, FactorResponse,
                  trControl = trCtrl,
                  metric = "ROC", 
                  maximize = T,
-                 tuneGrid = expand.grid(nrounds = 1800,
-                                        max_depth = c(4), #
+                 tuneGrid = expand.grid(nrounds = seq(1200,1800, 100), #1800,
+                                        max_depth = c(4,5), #
                                         eta = c(0.004), # bag
                                         gamma = c(0),
                                         colsample_bytree = c(0.35), #0.55
@@ -106,7 +106,7 @@ xgbProb <- train(train, FactorResponse,
                  verbose = 1)
 
 
-print(xgbProb1,showSD = T)
+print(xgbProb,showSD = T)
 xgbImp <- varImp(xgbProb)$importance
 
 xgb.dump(xgbProb$finalModel,fname = "xgb.dump", fmap='xgb.fmap', with.stats = TRUE)
@@ -126,7 +126,7 @@ xgbBagFit <- train(train, FactorResponse,
                    metric = "ROC", 
                    maximize = TRUE,
                    trControl = trCtrlBag,
-                   tuneGrid = expand.grid(vars = c(100)),
+                   tuneGrid = expand.grid(vars = c(90)),
                    B = 51, 
                    bagControl = bagControl(fit = xgbBag$fit,
                                            predict = xgbBag$pred,
@@ -141,21 +141,6 @@ xgbBagFit <- train(train, FactorResponse,
                    stratified = TRUE,
                    bag.fraction = 1)
 
-preds <- predict(xgbBagFit, test, "prob")[[1]]
-
-nv = tc['num_var33']+tc['saldo_medio_var33_ult3']+tc['saldo_medio_var44_hace2']+tc['saldo_medio_var44_hace3']+
-  tc['saldo_medio_var33_ult1']+tc['saldo_medio_var44_ult1']
-preds[nv > 0] = 0
-preds[tc['var15'] < 23] = 0
-preds[tc['saldo_medio_var5_hace2'] > 160000] = 0
-preds[tc['saldo_var33'] > 0] = 0 
-preds[tc['num_var30'] > 9] = 0
-preds[tc['num_var13_0'] > 6] = 0
-preds[tc['num_var33_0'] > 0] = 0
-preds[tc['saldo_medio_var5_ult3'] > 108251] = 0
-preds[(tc['var15']+tc['num_var45_hace3']+tc['num_var45_ult3']+tc['var36']) <= 24] = 0
-preds[tc['saldo_var5'] > 137615] = 0
-
-submission$TARGET <- preds #predict(xgbBagFit, test, "prob")[[1]]
+submission$TARGET <- predict(xgbBagFit, test, "prob")[[1]]
 write.csv(submission, "submission.csv", row.names=FALSE)
 

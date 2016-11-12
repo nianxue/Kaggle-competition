@@ -12,7 +12,7 @@ load("E:/KaggleProject/AllState/data.RData")
 
 # cl <- makeCluster(3)
 # registerDoParallel(cl)
-# clusterExport(cl, "SQWKfun")
+# clusterExport(cl, "fairobj")
 # stopCluster(cl)
 
 
@@ -23,6 +23,37 @@ trCtrl <- trainControl(method = "cv",
                        returnData = FALSE,
                        savePredictions = T)
 
+dtrain <- xgb.DMatrix(data = as.matrix(train_Count), label = log_target200)
+dtest <- xgb.DMatrix(data = as.matrix(test_Count))
+
+xgb_params  <- list(max_depth = 12,
+                    eta = 0.025, 
+                    min_child_weight = 120,
+                    gamma = 0.075,
+                    objective = fairobj,
+                    eval_metric = xg_eval_mae,
+                    subsample = 0.85, 
+                    colsample_bytree = 0.35)
+
+set.seed(7652)
+xgb_fair_cv <- xgb.cv(data = dtrain,
+                      params = xgb_params,
+                      nround = 50, 
+                      nfold = 3,
+                      stratified = TRUE,
+                      prediction = TRUE,
+                      maximize = FALSE,
+                      early.stop.round = 100,
+                      print.every.n = 30,
+                      verbose = 1)
+
+best_nrounds = xgb_fair$best_iteration
+cv_mean = xgb_fair$evaluation_log$test_error_mean[best_nrounds]
+cv_std = xgb_fair$evaluation_log$test_error_std[best_nrounds]
+cat(paste0('CV-Mean: ',cv_mean,' ', cv_std))
+
+xgb_fair = xgb.train(xgb_params, dtrain, nrounds=best_nrounds)
+out <- exp(predict(gbdt,dtest))
 set.seed(8969)
 xgb_Count <- train(train_Count, log_target200, 
                    method = "xgbTree", 

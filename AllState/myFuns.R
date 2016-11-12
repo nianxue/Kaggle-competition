@@ -8,9 +8,24 @@ CaretMAE <- function(data, lev = NULL, model = NULL)
   pred <- pred[!isNA]
   obs <- obs[!isNA]
   
-  out <- mae(exp(obs) - 200, exp(pred) - 200)
+  out <- mae(exp(obs), exp(pred))
   names(out) <- c("MAE")
   out
+}
+
+xg_eval_mae <- function (yhat, dtrain) {
+  y = getinfo(dtrain, "label")
+  err= mae(exp(y),exp(yhat) )
+  return (list(metric = "error", value = err))
+}
+
+fairobj <- function(preds, dtrain) {
+  labels <- getinfo(dtrain, "label")
+  c <- 2 #the lower the "slower/smoother" the loss is. Cross-Validate.
+  x <-  preds-labels
+  grad <- c*x / (abs(x)+c)
+  hess <- c^2 / (abs(x)+c)^2
+  return(list(grad = grad, hess = hess))
 }
 
 #Steps to create interaction

@@ -76,6 +76,29 @@ xgb_Count <- train(train_Count, log_target200,
                    verbose = 1)
 
 
+
+set.seed(8969)
+xgb_Count <- train(train_Count, log_target200, 
+                   method = "xgbTree", 
+                   objective = "reg:linear",
+                   trControl = trCtrl,
+                   metric = "MAE", 
+                   maximize = FALSE,
+                   tuneGrid = expand.grid(nrounds = 1400, #1100
+                                          max_depth = c(12), # 
+                                          eta = c(0.025), #0.025
+                                          gamma = c(1), #
+                                          colsample_bytree = c(0.35),
+                                          min_child_weight = c(135),
+                                          subsample = c(0.85)), 
+                   # colsample_bylevel = 0.75,
+                   alpha = 0,
+                   lambda = 1,
+                   # early.stop.round = 100,
+                   stratified = TRUE,
+                   verbose = 1)
+
+
 set.seed(8969)
 xgb_Count_poisson <- train(train_Count, log_target200, 
                            method = "xgbTree", 
@@ -98,61 +121,9 @@ xgb_Count_poisson <- train(train_Count, log_target200,
 
 
 
-trCtrlBag <- trainControl(method = "none",
-                         # repeats = 5,
-                         number = 3,
-                         summaryFunction = CaretMAE,
-                         returnData = FALSE,
-                         savePredictions = T)
-
-set.seed(642891)
-xgbBagFit <- train(train_Count, log_target200, 
-                   method = "bag", 
-                   metric = "MAE", 
-                   maximize = FALSE,
-                   trControl = trCtrlBag,
-                   tuneGrid = expand.grid(vars = c(120)),
-                   B = 100, 
-                   bagControl = bagControl(fit = xgbBag$fit,
-                                           predict = xgbBag$pred,
-                                           aggregate = xgbBag$aggregate),
-                   objective = "reg:linear",
-                   nrounds = 1400, 
-                   max_depth = 12,
-                   eta = 0.025,
-                   subsample = 0.85, 
-                   colsample_bytree = c(0.4),
-                   min_child_weight = 110,
-                   gamma = c(0.075),
-                   stratified = TRUE,
-                   bag.fraction = 1,
-                   verbose = 0)
 
 
-set.seed(642891)
-xgbBagFit_Poisson <- train(train_Count, log_target200, 
-                           method = "bag", 
-                           metric = "MAE", 
-                           maximize = FALSE,
-                           trControl = trCtrlBag,
-                           tuneGrid = expand.grid(vars = c(50,70,90)),
-                           B = 11, 
-                           bagControl = bagControl(fit = xgbBag$fit,
-                                                   predict = xgbBag$pred,
-                                                   aggregate = xgbBag$aggregate),
-                           objective = "count:poisson",
-                           nrounds = 1300, 
-                           max_depth = 12,
-                           eta = 0.025,
-                           subsample = 0.85, 
-                           colsample_bytree = c(0.5),
-                           min_child_weight = 75,
-                           gamma = c(0.075),
-                           stratified = TRUE,
-                           bag.fraction = 0.9,
-                           verbose = 0)
-
-print(xgb_Count_poisson, showSD = T)
+print(xgb_Count, showSD = T)
 pred_train <- predict(xgb_Count_poisson, train_Count)
 mae(target, exp(pred_train) - 200)
 

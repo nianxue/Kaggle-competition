@@ -16,7 +16,7 @@ load("E:/KaggleProject/AllState/data.RData")
 # stopCluster(cl)
 
 
-trCtrl <- trainControl(method = "none",
+trCtrl <- trainControl(method = "cv",
                        # repeats = 5,
                        number = 3,
                        summaryFunction = CaretMAE,
@@ -117,11 +117,11 @@ xgb_Count <- train(train_Count, log_target200,
                    metric = "MAE", 
                    maximize = FALSE,
                    tuneGrid = expand.grid(nrounds = seq(800, 1500, 100), #1100
-                                          max_depth = c(12), # 
+                                          max_depth = c(10,11,12), # 
                                           eta = c(0.025), #0.025
                                           gamma = c(1), #
                                           colsample_bytree = c(0.35),
-                                          min_child_weight = c(135),
+                                          min_child_weight = c(75,111,135),
                                           subsample = c(0.85)), 
                    # colsample_bylevel = 0.75,
                    alpha = 0,

@@ -37,15 +37,6 @@ for(var in c_Vars){
 }
 
 
-##########train only contains character or factor variables, 
-##########test includes all variables
-##########parameters need to tune: minCnt, fillNa, times
-# temp <- getTargetMean(train[, c_Vars], test, log_target, minCnt = 10,
-#                       fillNa = 99999, K = 2, times = 3, seeds = 9)
-# 
-# train <- bind_cols(train, temp$train) %>% select(matches("Prob|cont"))
-# test <- temp$test %>% select(matches("Prob|cont"))
-
 ###rank cat features by loss and create rank summary features
 tempData <- data
 tempTrain <- train
@@ -69,19 +60,24 @@ data$Rank3s <- apply(temp, 1, function(x) sum(x==3, na.rm = T))
 data$Rank4s <- apply(temp, 1, function(x) sum(x==4, na.rm = T))
 data$Rankgreaterthan4 <- apply(temp, 1, function(x) sum(x>=5, na.rm = T))
 
-#####create order based summary features
-# temp <- select(data, matches("AlphaOrder"))
-# data$AlphaOrderRowSum <- apply(temp, 1, sum, na.rm = T)
-# data$AlphaOrder1s <- apply(temp, 1, function(x) sum(x==1, na.rm = T))
-# data$AlphaOrder2s <- apply(temp, 1, function(x) sum(x==2, na.rm = T))
-# data$AlphaOrder3s <- apply(temp, 1, function(x) sum(x==3, na.rm = T))
-# data$AlphaOrder4s <- apply(temp, 1, function(x) sum(x==4, na.rm = T))
-# data$AlphaOrderGreaterThan4 <- apply(temp, 1, function(x) sum(x>=5, na.rm = T))
-
 train_Count <- filter(data, split == 1) %>% select(matches("^cont|cnt|rank"))
 test_Count <- filter(data, split == 0) %>% select(matches("^cont|cnt|rank"))
 
 
 
-# train_Order <- filter(data, split == 1) %>% select(matches("^cont|AlphaOrder"))
-# test_Order <- filter(data, split == 0) %>% select(matches("^cont|AlphaOrder"))
+
+##########train only contains character or factor variables, 
+##########test includes all variables
+##########parameters need to tune: minCnt, fillNa, times
+
+
+#get variables that have more than 10 categories
+temp <- data %>% select(matches("^cat.+[0-9]$"))
+temp <- sapply(temp, n_distinct)
+HighOrdinalVars <- names(temp[temp >= 10])
+
+temp <- getTargetMean(train[, HighOrdinalVars], test, log_target200, minCnt = 10,
+                      fillNa = 99999, K = 2, times = 3, seeds = 9)
+
+train_Count <- bind_cols(train_Count, temp$train)
+test_Count <- bind_cols(test_Count, select(temp$test, matches("Prob")))
